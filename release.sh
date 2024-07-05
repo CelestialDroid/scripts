@@ -40,6 +40,8 @@ BUILD=$BUILD_NUMBER
 VERSION=$BUILD_NUMBER
 DEVICE=$1
 PRODUCT=$DEVICE
+ZIP_LOCATION=obj/PACKAGING/target_files_intermediates/
+CELESTIAL_BUILD=$(ls -Art $OUT/$ZIP_LOCATION | tail -n 1 | sed -e 's|-'$DEVICE'-target_files.zip||g')
 
 get_radio_image() {
     grep "require version-$1" $ANDROID_BUILD_TOP/vendor/$2 | cut -d '=' -f 2 | tr '[:upper:]' '[:lower:]'
@@ -60,7 +62,7 @@ else
     user_error "$DEVICE is not supported by the release script"
 fi
 
-TARGET_FILES=$DEVICE-target_files.zip
+TARGET_FILES=$CELESTIAL_BUILD-$DEVICE-target_files.zip
 
 AVB_PKMD="$KEY_DIR/avb_pkmd.bin"
 AVB_ALGORITHM=SHA256_RSA4096
@@ -155,14 +157,14 @@ sign_target_files_apks -o -d "$KEY_DIR" --avb_vbmeta_key "$KEY_DIR/avb.pem" --av
     "$OUT/obj/PACKAGING/target_files_intermediates/$TARGET_FILES" $TARGET_FILES
 
 ota_from_target_files -k "$KEY_DIR/releasekey" "${EXTRA_OTA[@]}" $TARGET_FILES \
-    $DEVICE-ota_update-$BUILD.zip
-script/generate_metadata.py $DEVICE-ota_update-$BUILD.zip
+    $CELESTIAL_BUILD-$DEVICE-ota_update-$BUILD.zip
+script/generate_metadata.py $CELESTIAL_BUILD-$DEVICE-ota_update-$BUILD.zip
 
-img_from_target_files $TARGET_FILES $DEVICE-img-$BUILD.zip
+img_from_target_files $TARGET_FILES $CELESTIAL_BUILD-$DEVICE-img-$BUILD.zip
 
 source device/common/generate-factory-images-common.sh
 
 if [[ -f "$KEY_DIR/id_ed25519" ]]; then
     export PATH="$OLD_PATH"
-    ssh-keygen -Y sign -n "factory images" -f "$KEY_DIR/id_ed25519" $DEVICE-factory-$BUILD_NUMBER.zip
+    ssh-keygen -Y sign -n "factory images" -f "$KEY_DIR/id_ed25519" $CELESTIAL_BUILD-$DEVICE-factory-$BUILD_NUMBER.zip
 fi
